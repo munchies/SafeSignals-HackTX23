@@ -1,0 +1,252 @@
+#include <Wire.h>
+#include <rgb_lcd.h>
+
+//red LED
+#define red 4
+//blue LED
+#define blue 8
+//green LED
+#define green 7
+
+//button (for dots)
+#define dot 2
+//touch sensor (for dashes)
+#define dash 6
+
+//rotary (to indicate transitions between letter/words)
+#define rotary A0
+
+//error buzzer (to indicate the input is invalid)
+#define buzzer 5
+
+//global variables
+rgb_lcd lcd;
+
+const int colorR = 255;
+const int colorG = 255;
+const int colorB = 255;
+
+int cIdx = 0;
+
+int letter[] = {2, 2, 2, 2, 2};
+int lIdx = 0;
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  
+  //LED (red, green, blue)
+  pinMode(red, OUTPUT);
+  pinMode(green, OUTPUT);
+  pinMode(blue, OUTPUT);
+  
+  //BUTTON 
+  pinMode(dot, INPUT);
+
+  //TOUCH SENSOR
+  pinMode(dash, INPUT);
+
+  //ROTARY
+  //Serial.begin(9600);
+  pinMode(rotary, INPUT);
+
+  //BUZZER
+  pinMode(buzzer, OUTPUT);
+
+  //DISPLAY
+  lcd.begin(16, 2);
+  lcd.setRGB(colorR, colorG, colorB);
+  delay(100);
+}
+
+char getLetter(int buf[]){
+  char letter = 0;
+
+  if(buf[0]== 0 && buf[1] == 1 && buf[2] == 2 && buf[3] == 2){
+    letter = 'A';
+  }else if(buf[0]== 1&& buf[1] == 0 && buf[2] == 0 && buf[3] == 0){
+    letter = 'B';
+  }else if(buf[0]== 1 && buf[1] == 0 && buf[2] == 1 && buf[3] == 0){
+    letter = 'C';
+  }else if(buf[0]== 1 && buf[1] == 0 && buf[2] == 0 && buf[3] == 2){
+    letter = 'D';
+  }else if(buf[0]== 0 && buf[1] == 2 && buf[2] == 2 && buf[3] == 2){
+    letter = 'E';
+  }else if(buf[0]== 0 && buf[1] == 0 && buf[2] == 1 && buf[3] == 0){
+    letter = 'F';
+  }else if(buf[0]== 1 && buf[1] == 1 && buf[2] == 0 && buf[3] == 2){
+    letter = 'G';
+  }else if(buf[0]== 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0){
+    letter = 'H';
+  }else if(buf[0]== 0 && buf[1] == 0 && buf[2] == 2 && buf[3] == 2){
+    letter = 'I';
+  }else if(buf[0]== 0 && buf[1] == 1 && buf[2] == 1 && buf[3] == 1){
+    letter = 'J';
+  }else if(buf[0]== 1 && buf[1] == 0 && buf[2] == 1 && buf[3] == 2){
+    letter = 'K';
+  }else if(buf[0]== 0 && buf[1] == 1 && buf[2] == 0 && buf[3] == 0){
+    letter = 'L';
+  }else if(buf[0]== 1 && buf[1] == 1 && buf[2] == 2 && buf[3] == 2){
+    letter = 'M';
+  }else if(buf[0]== 1 && buf[1] == 0 && buf[2] == 2 && buf[3] == 2){
+    letter = 'N';
+  }else if(buf[0]== 1 && buf[1] == 1 && buf[2] == 1 && buf[3] == 2){
+    letter = 'O';
+  }else if(buf[0]== 0 && buf[1] == 1 && buf[2] == 1 && buf[3] == 0){
+    letter = 'P';
+  }else if(buf[0]== 1 && buf[1] == 1 && buf[2] == 0 && buf[3] == 1){
+    letter = 'Q';
+  }else if(buf[0]== 0 && buf[1] == 1 && buf[2] == 0 && buf[3] == 2){
+    letter = 'R';
+  }else if(buf[0]== 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 2){
+    letter = 'S';
+  }else if(buf[0]== 1 && buf[1] == 2 && buf[2] == 2 && buf[3] == 2){
+    letter = 'T';
+  }else if(buf[0]== 0 && buf[1] == 0 && buf[2] == 1 && buf[3] == 2){
+    letter = 'U';
+  }else if(buf[0]== 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 1){
+    letter = 'V';
+  }else if(buf[0]== 0 && buf[1] == 1 && buf[2] == 1 && buf[3] == 2){
+    letter = 'W';
+  }else if(buf[0]== 1 && buf[1] == 0 && buf[2] == 0 && buf[3] == 1){
+    letter = 'X';
+  }else if(buf[0]== 1 && buf[1] == 0 && buf[2] == 1 && buf[3] == 1){
+    letter = 'Y';
+  }else if(buf[0]== 1 && buf[1] == 1 && buf[2] == 0 && buf[3] == 0){
+    letter = 'Z';
+  }else{
+    invalid();
+  }
+
+  return letter;
+}
+
+void invalid(){
+  //clear the LCD
+  lcd.clear();
+  
+  //print out "invalid. try again" on the LCD
+  lcd.setCursor(0, 0);
+  lcd.print("invalid.");
+  
+  //start the buzzer
+  //stop the buzzer after 5 seconds
+  for(int i = 0; i < 5; i++){
+    tone(buzzer, 10);
+    delay(100);
+    noTone(buzzer);
+    delay(100);
+  }
+  
+  //clear screen after 10 seconds
+  for(int i = 0; i < 4; i++){
+    delay(1000);
+  }
+
+  lcd.clear();
+
+  //reset the buffer and the index
+  for(int i = 0; i < 4; i++){
+    letter[i] = 2;
+  }
+  lIdx = 0;
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  int val = analogRead(rotary);
+  
+  //letter is over
+  if(val >= 0 && val <= 100){
+    //turn off the green LED
+    digitalWrite(green, 0);
+    
+    //light up blue LED
+    digitalWrite(blue, 1);
+
+    //display the letter on the screen
+    if(lIdx != 0){
+      char msg = getLetter(letter);
+      lcd.setCursor(cIdx, 0);
+      lcd.write(msg);
+      cIdx++;
+    }
+  
+    //to move the next letter
+    //reset the buffer
+    //reset the index of the buffer
+    for(int i = 0; i < 4; i++){
+      letter[i] = 2;
+    }
+    lIdx = 0;
+
+    //wait until next letter is ready to be recieved
+    while(analogRead(rotary) <= 100){}
+
+    //turn off blue LED
+    digitalWrite(blue, 0);
+  }else if(val > 100 && val < 570){
+    //light up green LED 
+    digitalWrite(green, 1);
+
+    while(digitalRead(dot)== 0 && digitalRead(dash) == 0){
+      if(analogRead(rotary) <= 100 || analogRead(rotary) >=570){
+        break;  
+      }
+    }
+
+    //check for buffer overflow
+     if(lIdx > 4){
+      //call error function, which will set off the buzzer
+      //and prints out the error message
+      invalid();
+     }
+
+    //store 0 in the buffer
+    if(digitalRead(dot) == 1){
+     //wait until the touch is released
+     while(digitalRead(dot) == 1){}
+
+     //store the input in the buffer
+     letter[lIdx] = 0;
+     //increment the buffer index
+     lIdx++;
+    }else if(digitalRead(dash) == 1){
+      //wait until the button is released
+     while(digitalRead(dash) == 1){}
+
+     //store the input in the buffer
+     letter[lIdx] = 1;
+     //increment the buffer index
+     lIdx++;
+    }
+  }else if(val >= 570 && val <= 670){
+    //turn off the green LED
+    digitalWrite(green, 0);
+
+    //turn on the red LED
+    digitalWrite(red, 1);
+
+    //let the word display on the screen for 10 seconds
+    for(int i = 0; i < 5; i++){
+      delay(500);  
+    }
+
+    //clear the LCD
+    lcd.clear();
+
+    //reset the buffer and the index
+    for(int i = 0; i < 4; i++){
+      letter[i] = 2;
+    }
+    lIdx = 0;
+    cIdx = 0;
+    //wait for the input to be available
+    while(analogRead(rotary) >= 570){}
+
+    //turn off red LED
+    digitalWrite(red, 0);
+    //turn on the green LED
+    digitalWrite(green, 1);
+  }
+}
